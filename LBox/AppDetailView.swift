@@ -12,13 +12,10 @@ struct AppDetailView: View {
 
     var body: some View {
         ZStack {
-            // Fondo degradado sutil para potenciar el efecto glass
             LinearGradient(
                 colors: [Color(.systemBackground), Color.accentColor.opacity(0.07)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ).ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -31,8 +28,7 @@ struct AppDetailView: View {
                         .padding(.top)
 
                     if !app.screenshotURLs.isEmpty {
-                        screenshotsSection
-                            .padding(.vertical, 8)
+                        screenshotsSection.padding(.vertical, 8)
                     }
 
                     aboutSection
@@ -42,8 +38,7 @@ struct AppDetailView: View {
                         .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
                         .padding(.horizontal)
 
-                    versionsSection
-                        .padding(.bottom, 48)
+                    versionsSection.padding(.bottom, 48)
                 }
             }
         }
@@ -61,7 +56,6 @@ struct AppDetailView: View {
         }
     }
 
-    // MARK: - Header
     var headerSection: some View {
         HStack(alignment: .top, spacing: 16) {
             AsyncImage(url: URL(string: app.iconURL ?? "")) { phase in
@@ -73,8 +67,7 @@ struct AppDetailView: View {
                         .overlay(Image(systemName: "app").foregroundStyle(.tertiary).font(.largeTitle))
                 } else {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(.quaternary)
-                        .overlay(ProgressView())
+                        .fill(.quaternary).overlay(ProgressView())
                 }
             }
             .frame(width: 100, height: 100)
@@ -82,13 +75,8 @@ struct AppDetailView: View {
             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(app.name)
-                    .font(.title2.weight(.bold))
-
-                Text(app.bundleIdentifier)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Text(app.name).font(.title2.weight(.bold))
+                Text(app.bundleIdentifier).font(.caption).foregroundStyle(.secondary).lineLimit(1)
 
                 HStack(spacing: 4) {
                     Text("v\(app.version)")
@@ -97,32 +85,26 @@ struct AppDetailView: View {
                         Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary)
 
                 if let repo = app.sourceRepoName {
                     Text(repo)
                         .font(.caption2.weight(.medium))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.tint.opacity(0.12))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.12))
                         .foregroundStyle(.tint)
                         .clipShape(Capsule())
                 }
 
                 HStack(spacing: 10) {
                     DownloadButton(app: app)
-
                     if downloadManager.isAppInstalled(bundleID: app.bundleIdentifier) {
-                        Button {
-                            launchApp(bundleID: app.bundleIdentifier)
-                        } label: {
+                        Button { launchApp(bundleID: app.bundleIdentifier) } label: {
                             Text("OPEN")
                                 .font(.headline.weight(.bold))
                                 .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 7)
-                                .background(.tint)
+                                .padding(.horizontal, 24).padding(.vertical, 7)
+                                .background(Color.accentColor)
                                 .clipShape(Capsule())
                         }
                     }
@@ -133,13 +115,9 @@ struct AppDetailView: View {
         }
     }
 
-    // MARK: - Screenshots
     var screenshotsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Preview")
-                .font(.headline.weight(.semibold))
-                .padding(.horizontal)
-
+            Text("Preview").font(.headline.weight(.semibold)).padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(app.screenshotURLs, id: \.self) { urlString in
@@ -163,24 +141,18 @@ struct AppDetailView: View {
         }
     }
 
-    // MARK: - About
     var aboutSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("About", systemImage: "info.circle")
-                .font(.headline.weight(.semibold))
+            Label("About", systemImage: "info.circle").font(.headline.weight(.semibold))
             Text(app.localizedDescription ?? "No description available.")
-                .font(.body)
-                .foregroundStyle(.primary)
+                .font(.body).foregroundStyle(.primary)
         }
     }
 
-    // MARK: - Versions
     var versionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Version History", systemImage: "clock.arrow.circlepath")
-                .font(.headline.weight(.semibold))
-                .padding(.horizontal)
-
+                .font(.headline.weight(.semibold)).padding(.horizontal)
             ForEach(versionHistory) { versionApp in
                 VersionRow(app: versionApp)
             }
@@ -216,30 +188,20 @@ struct VersionRow: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text("Version \(app.version)")
-                        .font(.subheadline.weight(.semibold))
-
+                    Text("Version \(app.version)").font(.subheadline.weight(.semibold))
                     if let repo = app.sourceRepoName {
-                        Text(repo)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.12))
+                        Text(repo).font(.caption2).foregroundStyle(.secondary)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12))
                             .clipShape(Capsule())
                     }
-
                     if isInstalledVersion {
-                        Text("Installed")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.green)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.green.opacity(0.12))
+                        Text("Installed").font(.caption2.weight(.bold)).foregroundStyle(.green)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.green.opacity(0.12))
                             .clipShape(Capsule())
                     }
                 }
-
                 HStack(spacing: 4) {
                     Text(app.versionDate ?? "Unknown Date")
                     if let size = app.size {
@@ -247,8 +209,7 @@ struct VersionRow: View {
                         Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             DownloadButton(app: app, compact: true)
@@ -287,39 +248,29 @@ struct DownloadButton: View {
                 Button { showShareSheet = true } label: {
                     if compact {
                         Image(systemName: "doc.fill")
-                            .font(.body.weight(.bold))
-                            .foregroundStyle(.secondary)
+                            .font(.body.weight(.bold)).foregroundStyle(.secondary)
                             .frame(width: 32, height: 32)
-                            .background(.regularMaterial)
+                            .background(Color.secondary.opacity(0.15))
                             .clipShape(Circle())
                     } else {
                         Label("Share IPA", systemImage: "square.and.arrow.up")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.tint)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 7)
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(.tint)
+                            .padding(.horizontal, 16).padding(.vertical, 7)
                             .background(.regularMaterial)
                             .clipShape(Capsule())
                     }
                 }
-                .sheet(isPresented: $showShareSheet) {
-                    FileShareSheet(activityItems: [localURL])
-                }
+                .sheet(isPresented: $showShareSheet) { FileShareSheet(activityItems: [localURL]) }
 
-            } else if let task = downloadURL.flatMap({ downloadManager.activeDownloads[$0] }) {
-                // En progreso
+            } else if let url = downloadURL, let task = downloadManager.activeDownloads[url] {
                 HStack(spacing: 6) {
-                    ProgressView(value: task.progress)
-                        .progressViewStyle(.circular)
+                    ProgressView(value: task.progress).progressViewStyle(.circular)
                         .scaleEffect(compact ? 0.7 : 0.9)
                     if !compact {
-                        Text("\(Int(task.progress * 100))%")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
+                        Text("\(Int(task.progress * 100))%").font(.caption2.weight(.medium)).foregroundStyle(.secondary)
                     }
-                    Button { downloadManager.cancelDownload(url: downloadURL!) } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                    Button { downloadManager.cancelDownload(url: url) } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal, compact ? 4 : 10)
@@ -330,18 +281,15 @@ struct DownloadButton: View {
                 } label: {
                     if compact {
                         Image(systemName: "arrow.down.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.tint)
+                            .font(.title3).foregroundStyle(.tint)
                             .frame(width: 32, height: 32)
-                            .background(.regularMaterial)
+                            .background(Color.accentColor.opacity(0.12))
                             .clipShape(Circle())
                     } else {
                         Label("GET", systemImage: "arrow.down.circle.fill")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 7)
-                            .background(.tint)
+                            .font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                            .padding(.horizontal, 20).padding(.vertical, 7)
+                            .background(Color.accentColor)
                             .clipShape(Capsule())
                     }
                 }
