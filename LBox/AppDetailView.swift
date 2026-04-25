@@ -5,167 +5,193 @@ struct AppDetailView: View {
     @ObservedObject var viewModel: AppStoreViewModel
     @EnvironmentObject var downloadManager: DownloadManager
     @State private var showSetupNeeded = false
-    
-    // Helper to extract versions cleanly and avoid compiler confusion in ViewBuilder
+
     private var versionHistory: [AppItem] {
         return viewModel.getVersions(for: app)
     }
-    
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerSection
-                Divider().padding(.horizontal)
-                if !app.screenshotURLs.isEmpty {
-                    screenshotsSection
-                    Divider().padding(.horizontal)
+        ZStack {
+            // Fondo degradado sutil para potenciar el efecto glass
+            LinearGradient(
+                colors: [Color(.systemBackground), Color.accentColor.opacity(0.07)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    headerSection
+                        .padding()
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .shadow(color: .black.opacity(0.07), radius: 16, x: 0, y: 6)
+                        .padding(.horizontal)
+                        .padding(.top)
+
+                    if !app.screenshotURLs.isEmpty {
+                        screenshotsSection
+                            .padding(.vertical, 8)
+                    }
+
+                    aboutSection
+                        .padding()
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+                        .padding(.horizontal)
+
+                    versionsSection
+                        .padding(.bottom, 48)
                 }
-                aboutSection
-                Divider().padding(.horizontal)
-                versionsSection
-                    .padding(.bottom, 40)
             }
-            .padding(.top)
         }
         .navigationBarTitleDisplayMode(.inline)
         .alert("Setup Required", isPresented: $showSetupNeeded) {
             Button("Open LiveContainer") {
-                if let url = URL(string: "livecontainer://livecontainer-launch?bundle-name=\(downloadManager.getInstalledAppName(bundleID: app.bundleIdentifier) ?? "Unknown")") { UIApplication.shared.open(url) }
+                if let name = downloadManager.getInstalledAppName(bundleID: app.bundleIdentifier),
+                   let url = URL(string: "livecontainer://livecontainer-launch?bundle-name=\(name)") {
+                    UIApplication.shared.open(url)
+                }
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This app has not been configured yet. Please open LiveContainer, then find and run this app once to generate the configuration.")
+            Text("This app has not been configured yet. Please open LiveContainer, run this app once to generate its configuration.")
         }
     }
-    
+
+    // MARK: - Header
     var headerSection: some View {
         HStack(alignment: .top, spacing: 16) {
             AsyncImage(url: URL(string: app.iconURL ?? "")) { phase in
                 if let image = phase.image {
-                    image.resizable()
+                    image.resizable().scaledToFill()
                 } else if phase.error != nil {
-                    Color.gray
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.quaternary)
+                        .overlay(Image(systemName: "app").foregroundStyle(.tertiary).font(.largeTitle))
                 } else {
-                    Color.gray.opacity(0.3)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.quaternary)
+                        .overlay(ProgressView())
                 }
             }
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .shadow(radius: 2)
-            
+            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(app.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
+                    .font(.title2.weight(.bold))
+
                 Text(app.bundleIdentifier)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                
+
                 HStack(spacing: 4) {
                     Text("v\(app.version)")
                     if let size = app.size {
-                        Text("•")
+                        Text("Â·")
                         Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                     }
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
-                
+                .foregroundStyle(.secondary)
+
                 if let repo = app.sourceRepoName {
-                     Text(repo)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(4)
+                    Text(repo)
+                        .font(.caption2.weight(.medium))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.tint.opacity(0.12))
+                        .foregroundStyle(.tint)
+                        .clipShape(Capsule())
                 }
-                
-                HStack(spacing: 12) {
+
+                HStack(spacing: 10) {
                     DownloadButton(app: app)
-                    
+
                     if downloadManager.isAppInstalled(bundleID: app.bundleIdentifier) {
                         Button {
                             launchApp(bundleID: app.bundleIdentifier)
                         } label: {
                             Text("OPEN")
-                                .font(.headline.bold())
-                                .foregroundColor(.white)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
                                 .padding(.horizontal, 24)
-                                .padding(.vertical, 6)
-                                .background(Color.blue)
+                                .padding(.vertical, 7)
+                                .background(.tint)
                                 .clipShape(Capsule())
                         }
                     }
                 }
                 .padding(.top, 4)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal)
     }
-    
-    // ... [screenshotsSection, aboutSection, versionsSection unchanged] ...
+
+    // MARK: - Screenshots
     var screenshotsSection: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Preview")
-                .font(.headline)
+                .font(.headline.weight(.semibold))
                 .padding(.horizontal)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(app.screenshotURLs, id: \.self) { urlString in
                         AsyncImage(url: URL(string: urlString)) { phase in
                             if let image = phase.image {
-                                image.resizable()
-                                    .aspectRatio(contentMode: .fit)
+                                image.resizable().aspectRatio(contentMode: .fit)
                             } else {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.1))
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(.regularMaterial)
                                     .frame(width: 200, height: 350)
+                                    .overlay(ProgressView())
                             }
                         }
                         .frame(height: 350)
-                        .cornerRadius(12)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                     }
                 }
                 .padding(.horizontal)
             }
         }
     }
-    
+
+    // MARK: - About
     var aboutSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("About")
-                .font(.headline)
+            Label("About", systemImage: "info.circle")
+                .font(.headline.weight(.semibold))
             Text(app.localizedDescription ?? "No description available.")
                 .font(.body)
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
         }
-        .padding(.horizontal)
     }
-    
+
+    // MARK: - Versions
     var versionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Version History")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Version History", systemImage: "clock.arrow.circlepath")
+                .font(.headline.weight(.semibold))
                 .padding(.horizontal)
-            
+
             ForEach(versionHistory) { versionApp in
                 VersionRow(app: versionApp)
             }
         }
     }
-    
-    // Launch Logic
+
     func launchApp(bundleID: String) {
         if let installedApp = downloadManager.installedApps.first(where: { $0.bundleID == bundleID }) {
             if downloadManager.hasLCAppInfo(bundleID: bundleID) {
                 let folderName = installedApp.url.lastPathComponent
-                let urlString = "livecontainer://livecontainer-launch?bundle-name=\(folderName)"
-                if let url = URL(string: urlString) {
+                if let url = URL(string: "livecontainer://livecontainer-launch?bundle-name=\(folderName)") {
                     UIApplication.shared.open(url)
                 }
             } else {
@@ -175,64 +201,68 @@ struct AppDetailView: View {
     }
 }
 
-// Separate row for versions (Unchanged)
+// MARK: - Version Row
+
 struct VersionRow: View {
     let app: AppItem
     @EnvironmentObject var downloadManager: DownloadManager
-    
+
     var isInstalledVersion: Bool {
         guard let current = downloadManager.getInstalledVersion(bundleID: app.bundleIdentifier) else { return false }
         return current == app.version
     }
-    
+
     var body: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading) {
-                HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
                     Text("Version \(app.version)")
-                        .fontWeight(.semibold)
-                    
+                        .font(.subheadline.weight(.semibold))
+
                     if let repo = app.sourceRepoName {
                         Text(repo)
                             .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 4)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(4)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.secondary.opacity(0.12))
+                            .clipShape(Capsule())
                     }
-                    
+
                     if isInstalledVersion {
-                        Text("Current")
-                            .font(.caption2.bold())
-                            .foregroundColor(.green)
-                            .padding(.horizontal, 4)
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(4)
+                        Text("Installed")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.green.opacity(0.12))
+                            .clipShape(Capsule())
                     }
                 }
-                
+
                 HStack(spacing: 4) {
                     Text(app.versionDate ?? "Unknown Date")
-                    
                     if let size = app.size {
-                        Text("•")
+                        Text("Â·")
                         Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                     }
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
             Spacer()
             DownloadButton(app: app, compact: true)
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
         .padding(.horizontal)
     }
 }
 
-// ... [FileShareSheet, DownloadButton Unchanged] ...
+// MARK: - Share Sheet
+
 struct FileShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -241,99 +271,81 @@ struct FileShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
+// MARK: - Download Button
+
 struct DownloadButton: View {
     let app: AppItem
     var compact: Bool = false
     @EnvironmentObject var downloadManager: DownloadManager
     @State private var showShareSheet = false
-    
+
     var body: some View {
         let downloadURL = URL(string: app.downloadURL)
-        
+
         Group {
             if let url = downloadURL, let localURL = downloadManager.getLocalFile(for: url) {
-                Button {
-                    showShareSheet = true
-                } label: {
+                Button { showShareSheet = true } label: {
                     if compact {
                         Image(systemName: "doc.fill")
-                            .font(.body.bold())
-                            .foregroundColor(.secondary)
-                            .frame(width: 28, height: 28)
-                            .background(Color.gray.opacity(0.15))
+                            .font(.body.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 32, height: 32)
+                            .background(.regularMaterial)
                             .clipShape(Circle())
                     } else {
-                        Label("File", systemImage: "doc.fill")
-                            .font(.headline)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
-                            .background(Color.gray.opacity(0.15))
-                            .foregroundColor(.primary)
+                        Label("Share IPA", systemImage: "square.and.arrow.up")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.tint)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 7)
+                            .background(.regularMaterial)
                             .clipShape(Capsule())
                     }
                 }
                 .sheet(isPresented: $showShareSheet) {
-                    FileShareSheet(activityItems: [prepareFileForShare(localURL)])
+                    FileShareSheet(activityItems: [localURL])
                 }
-            } else if let url = downloadURL, case .downloading(let progress, _, _) = downloadManager.getStatus(for: url) {
-                Button {
-                    downloadManager.pauseDownload(url: url)
-                } label: {
-                    ZStack {
-                        Circle().stroke(lineWidth: 3).opacity(0.2).foregroundColor(.blue)
-                        Circle().trim(from: 0.0, to: CGFloat(max(0.01, progress)))
-                            .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                            .foregroundColor(.blue).rotationEffect(Angle(degrees: 270.0)).animation(.linear, value: progress)
-                        Image(systemName: "pause.fill").font(.system(size: compact ? 10 : 14)).foregroundColor(.blue)
+
+            } else if let task = downloadURL.flatMap({ downloadManager.activeDownloads[$0] }) {
+                // En progreso
+                HStack(spacing: 6) {
+                    ProgressView(value: task.progress)
+                        .progressViewStyle(.circular)
+                        .scaleEffect(compact ? 0.7 : 0.9)
+                    if !compact {
+                        Text("\(Int(task.progress * 100))%")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(width: compact ? 28 : 32, height: compact ? 28 : 32)
-                }
-            } else if let url = downloadURL, case .paused = downloadManager.getStatus(for: url) {
-                Button {
-                    downloadManager.resumeDownload(url: url)
-                } label: {
-                    ZStack {
-                        Circle().stroke(lineWidth: 3).opacity(0.2).foregroundColor(.blue)
-                        Image(systemName: "play.fill").font(.system(size: compact ? 10 : 14)).foregroundColor(.blue)
+                    Button { downloadManager.cancelDownload(url: downloadURL!) } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(width: compact ? 28 : 32, height: compact ? 28 : 32)
                 }
-            } else if let url = downloadURL, case .waitingForConnection = downloadManager.getStatus(for: url) {
-                Button {
-                    downloadManager.pauseDownload(url: url)
-                } label: {
-                    ZStack {
-                        Circle().stroke(lineWidth: 3).opacity(0.2).foregroundColor(.orange)
-                        Image(systemName: "wifi.slash").font(.system(size: compact ? 10 : 14)).foregroundColor(.orange)
-                    }
-                    .frame(width: compact ? 28 : 32, height: compact ? 28 : 32)
-                }
+                .padding(.horizontal, compact ? 4 : 10)
+
             } else {
-                Button(action: {
-                    if let url = downloadURL {
-                        downloadManager.startDownload(url: url)
+                Button {
+                    if let url = downloadURL { downloadManager.startDownload(app: app, url: url) }
+                } label: {
+                    if compact {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.tint)
+                            .frame(width: 32, height: 32)
+                            .background(.regularMaterial)
+                            .clipShape(Circle())
+                    } else {
+                        Label("GET", systemImage: "arrow.down.circle.fill")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 7)
+                            .background(.tint)
+                            .clipShape(Capsule())
                     }
-                }) {
-                    Text("GET")
-                        .font(compact ? .caption.bold() : .headline.bold())
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, compact ? 16 : 24)
-                        .padding(.vertical, compact ? 6 : 6)
-                        .background(Color.blue.opacity(0.15))
-                        .clipShape(Capsule())
                 }
             }
         }
     }
-    
-    func prepareFileForShare(_ url: URL) -> URL {
-        let fileManager = FileManager.default
-        let tempDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try? fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let tempFile = tempDir.appendingPathComponent(url.lastPathComponent)
-        try? fileManager.removeItem(at: tempFile)
-        try? fileManager.copyItem(at: url, to: tempFile)
-        return tempFile
-    }
 }
-
